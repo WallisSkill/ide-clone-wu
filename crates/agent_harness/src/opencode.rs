@@ -40,7 +40,7 @@ const RETRY_ABORT_ATTEMPT: u64 = 8;
 const DEFAULT_STALL_BOUND: Duration = Duration::from_secs(60);
 const STALL_ENV: &str = "WU_OPENCODE_STALL_MS";
 const COMMAND_CACHE_TTL: Duration = Duration::from_secs(10);
-const UNSUPPORTED_FORM_MESSAGE: &str = "Wu can't show this kind of form, so it was skipped.";
+const UNSUPPORTED_FORM_MESSAGE: &str = "WiSCode can't show this kind of form, so it was skipped.";
 pub const UNTITLED_CHAT: &str = n!("Untitled chat");
 
 fn stall_hint() -> i18n::SharedString {

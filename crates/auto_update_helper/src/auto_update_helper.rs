@@ -9,7 +9,7 @@ mod updater;
 fn main() {
     i18n::set_language(i18n::Language::system());
     if let Err(e) = windows_impl::run() {
-        log::error!("Error: Wu update failed, {:?}", e);
+        log::error!("Error: WiSCode update failed, {:?}", e);
         windows_impl::show_error(i18n::t!("Error: {error}", error = format!("{e:?}")).to_string());
     }
 }
@@ -58,7 +58,7 @@ mod windows_impl {
             .context("No parent directory")?
             .to_path_buf();
 
-        log::info!("======= Starting Wu update =======");
+        log::info!("======= Starting WiSCode update =======");
         let (tx, rx) = std::sync::mpsc::channel();
         let hwnd = create_dialog_window(rx)?.0 as isize;
         let args = parse_args(std::env::args_os().skip(1));
@@ -124,7 +124,7 @@ mod windows_impl {
             MessageBoxW(
                 None,
                 &HSTRING::from(content),
-                &HSTRING::from(i18n::t!("Error: Wu update failed.").as_str()),
+                &HSTRING::from(i18n::t!("Error: WiSCode update failed.").as_str()),
                 MB_ICONERROR | MB_SYSTEMMODAL,
             )
         };

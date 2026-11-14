@@ -90,9 +90,9 @@ function GenerateLicenses {
 }
 
 function BuildWuAndItsFriends {
-    Write-Output "Building Wu and its friends, for channel: $channel"
+    Write-Output "Building WiSCode and its friends, for channel: $channel"
     cargo --config .cargo/bundle-config.toml build --release --package wu --package cli --package auto_update_helper --target $target
-    Copy-Item -Path ".\$CargoOutDir\wu.exe" -Destination "$innoDir\Wu.exe" -Force
+    Copy-Item -Path ".\$CargoOutDir\WiSCode.exe" -Destination "$innoDir\WiSCode.exe" -Force
     Copy-Item -Path ".\$CargoOutDir\cli.exe" -Destination "$innoDir\cli.exe" -Force
     Copy-Item -Path ".\$CargoOutDir\auto_update_helper.exe" -Destination "$innoDir\auto_update_helper.exe" -Force
     switch ($channel) {
@@ -155,8 +155,8 @@ function DownloadConpty {
 function CollectFiles {
     Move-Item -Path "$innoDir\zed_explorer_command_injector.appx" -Destination "$innoDir\appx\zed_explorer_command_injector.appx" -Force
     Move-Item -Path "$innoDir\zed_explorer_command_injector.dll" -Destination "$innoDir\appx\zed_explorer_command_injector.dll" -Force
-    Move-Item -Path "$innoDir\cli.exe" -Destination "$innoDir\bin\wu.exe" -Force
-    Move-Item -Path "$innoDir\zed.sh" -Destination "$innoDir\bin\wu" -Force
+    Move-Item -Path "$innoDir\cli.exe" -Destination "$innoDir\bin\wiscode.exe" -Force
+    Move-Item -Path "$innoDir\zed.sh" -Destination "$innoDir\bin\wiscode" -Force
     Move-Item -Path "$innoDir\auto_update_helper.exe" -Destination "$innoDir\tools\auto_update_helper.exe" -Force
     if($Architecture -eq "aarch64") {
         New-Item -Type Directory -Path "$innoDir\arm64" -Force
@@ -181,13 +181,13 @@ function BuildInstaller {
             # Wu used Zed's AppId before it got its own, so installs from then are registered under it.
             $oldAppId = "2DB0DA96-CA55-49BB-AF4F-64AF36A86712"
             $appIconName = "app-icon"
-            $appName = "Wu"
-            $appDisplayName = "Wu"
-            $appSetupName = "Wu-$Architecture"
+            $appName = "WiSCode"
+            $appDisplayName = "WiSCode"
+            $appSetupName = "WiSCode-$Architecture"
             # Must match `app_identifier()` in crates/release_channel/src/lib.rs plus the "-Instance-Mutex" suffix
             # used by crates/wu/src/wu/windows_only_instance.rs.
             $appMutex = "Wu-Editor-Stable-Instance-Mutex"
-            $appExeName = "Wu"
+            $appExeName = "WiSCode"
             $regValueName = "Wu"
             $appUserId = "Farshed.Wu"
             $appShellNameShort = "W&u"
@@ -197,11 +197,11 @@ function BuildInstaller {
             $appId = "{{3EF9FC05-FE00-4BD0-941C-21F3BA4E6952}"
             $oldAppId = "8357632E-24A4-4F32-BA97-E575B4D1FE5D"
             $appIconName = "app-icon-dev"
-            $appName = "Wu Dev"
-            $appDisplayName = "Wu Dev"
-            $appSetupName = "Wu-$Architecture"
+            $appName = "WiSCode Dev"
+            $appDisplayName = "WiSCode Dev"
+            $appSetupName = "WiSCode-$Architecture"
             $appMutex = "Wu-Editor-Dev-Instance-Mutex"
-            $appExeName = "Wu"
+            $appExeName = "WiSCode"
             $regValueName = "WuDev"
             $appUserId = "Farshed.Wu.Dev"
             $appShellNameShort = "W&u Dev"
@@ -273,8 +273,8 @@ Pop-Location
 if ($buildSuccess) {
     Write-Output "Build successful"
     if ($Install) {
-        Write-Output "Installing Wu..."
-        Start-Process -FilePath "$workspace/target/Wu-$Architecture.exe"
+        Write-Output "Installing WiSCode..."
+        Start-Process -FilePath "$workspace/target/WiSCode-$Architecture.exe"
     }
     exit 0
 }

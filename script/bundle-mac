@@ -95,7 +95,7 @@ rustup target add $target_triple
 
 echo "Compiling wu binaries"
 if [[ "$target_dir" = "release" ]]; then
-    cargo --config .cargo/bundle-config.toml rustc ${build_flag} --package wu --bin wu --target $target_triple -- -C 'link-arg=-Wl,-unexported_symbol,__R*'
+    cargo --config .cargo/bundle-config.toml rustc ${build_flag} --package wu --bin WiSCode --target $target_triple -- -C 'link-arg=-Wl,-unexported_symbol,__R*'
     cargo --config .cargo/bundle-config.toml build ${build_flag} --package cli --target $target_triple
 else
     cargo --config .cargo/bundle-config.toml build ${build_flag} ${zed_features} --package wu --package cli --target $target_triple
@@ -227,14 +227,14 @@ function sign_app_binaries() {
         # sequence of codesign commands modeled after this example: https://developer.apple.com/forums/thread/701514
         /usr/bin/codesign --deep --force --timestamp --options runtime --sign "$IDENTITY" "${app_path}/Contents/MacOS/cli" -v
         /usr/bin/codesign --deep --force --timestamp --options runtime --sign "$IDENTITY" "${app_path}/Contents/MacOS/git" -v
-        /usr/bin/codesign --deep --force --timestamp --options runtime --entitlements crates/wu/resources/zed.entitlements --sign "$IDENTITY" "${app_path}/Contents/MacOS/wu" -v
+        /usr/bin/codesign --deep --force --timestamp --options runtime --entitlements crates/wu/resources/zed.entitlements --sign "$IDENTITY" "${app_path}/Contents/MacOS/WiSCode" -v
         /usr/bin/codesign --force --timestamp --options runtime --entitlements crates/wu/resources/zed.entitlements --sign "$IDENTITY" "${app_path}" -v
     elif [[ $self_signed = true ]]; then
         echo "Code signing binaries with a self-signed certificate"
         # Apple's timestamp server and notarization only accept Apple-issued certificates.
         /usr/bin/codesign --force --timestamp=none --sign "$IDENTITY" "${app_path}/Contents/MacOS/cli" -v
         /usr/bin/codesign --force --timestamp=none --sign "$IDENTITY" "${app_path}/Contents/MacOS/git" -v
-        /usr/bin/codesign --force --timestamp=none --entitlements crates/wu/resources/zed.entitlements --sign "$IDENTITY" "${app_path}/Contents/MacOS/wu" -v
+        /usr/bin/codesign --force --timestamp=none --entitlements crates/wu/resources/zed.entitlements --sign "$IDENTITY" "${app_path}/Contents/MacOS/WiSCode" -v
         /usr/bin/codesign --force --timestamp=none --entitlements crates/wu/resources/zed.entitlements --sign "$IDENTITY" "${app_path}" -v
         /usr/bin/codesign --verify --deep --strict --verbose=2 "${app_path}"
         echo "Designated requirement:"
@@ -325,24 +325,24 @@ function sign_binary() {
 }
 
 
-cp target/${target_triple}/${target_dir}/wu "${app_path}/Contents/MacOS/wu"
+cp target/${target_triple}/${target_dir}/WiSCode "${app_path}/Contents/MacOS/WiSCode"
 cp target/${target_triple}/${target_dir}/cli "${app_path}/Contents/MacOS/cli"
 
 if [[ "$target_dir" = "release" && -n "${CI:-}${BUNDLE_DSYM:-}" ]]; then
     dsym_path="target/${target_triple}/${target_dir}/Wu.dSYM"
     rm -rf "$dsym_path" "${dsym_path}.zip"
     # Use rustc's dSYM when split-debuginfo produced one, otherwise build it.
-    if [[ -d "target/${target_triple}/${target_dir}/wu.dSYM" ]]; then
-        cp -R "target/${target_triple}/${target_dir}/wu.dSYM" "$dsym_path"
+    if [[ -d "target/${target_triple}/${target_dir}/WiSCode.dSYM" ]]; then
+        cp -R "target/${target_triple}/${target_dir}/WiSCode.dSYM" "$dsym_path"
     else
-        dsymutil "target/${target_triple}/${target_dir}/wu" -o "$dsym_path"
+        dsymutil "target/${target_triple}/${target_dir}/WiSCode" -o "$dsym_path"
     fi
     ditto -c -k --keepParent "$dsym_path" "${dsym_path}.zip"
     echo "Created debug symbols at ${dsym_path}.zip"
 fi
 
 if [[ "$target_dir" = "release" && "$local_install" != true ]]; then
-    strip -x "${app_path}/Contents/MacOS/wu" "${app_path}/Contents/MacOS/cli"
+    strip -x "${app_path}/Contents/MacOS/WiSCode" "${app_path}/Contents/MacOS/cli"
     strip -x "target/${target_triple}/${target_dir}/remote_server"
 fi
 

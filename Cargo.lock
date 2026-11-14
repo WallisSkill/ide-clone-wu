@@ -8387,6 +8387,7 @@ dependencies = [
  "const_format",
  "dirs",
  "ignore",
+ "tempfile",
  "util",
 ]
 
@@ -10497,6 +10498,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "run_configurations"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "db",
+ "extension_host",
+ "fs",
+ "futures",
+ "gpui",
+ "log",
+ "project",
+ "serde",
+ "serde_json",
+ "task",
+ "terminal_view",
+ "ui",
+ "util",
+ "which",
+ "workspace",
+ "wu_actions",
+]
+
+[[package]]
 name = "rust-embed"
 version = "8.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12503,6 +12527,7 @@ dependencies = [
  "remote",
  "remote_connection",
  "rpc",
+ "run_configurations",
  "schemars",
  "semver",
  "serde",
@@ -15861,6 +15886,7 @@ dependencies = [
  "remote_server",
  "reqwest_client",
  "rope",
+ "run_configurations",
  "search",
  "semver",
  "serde",

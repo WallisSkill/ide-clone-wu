@@ -74,7 +74,7 @@ fn build_application() -> Application {
 }
 
 fn files_not_created_on_launch(errors: HashMap<io::ErrorKind, Vec<&Path>>) {
-    let message = "Wu failed to launch";
+    let message = "WiSCode failed to launch";
     let error_details = errors
         .into_iter()
         .flat_map(|(kind, paths)| {
@@ -136,7 +136,7 @@ fn fail_to_open_window_async(e: anyhow::Error, cx: &mut AsyncApp) {
 
 fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
     eprintln!(
-        "Wu failed to open a window: {e:?}. See https://zed.dev/docs/linux for troubleshooting steps."
+        "WiSCode failed to open a window: {e:?}. See https://zed.dev/docs/linux for troubleshooting steps."
     );
     #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
     {
@@ -156,7 +156,7 @@ fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
             proxy
                 .add_notification(
                     notification_id,
-                    Notification::new("Wu failed to launch")
+                    Notification::new("WiSCode failed to launch")
                         .body(Some(
                             format!(
                                 "{e:?}. See https://zed.dev/docs/linux for troubleshooting steps."
@@ -289,6 +289,7 @@ fn main() {
         }
     }
 
+    let migration_warnings = paths::migrate_legacy_app_dirs();
     let file_errors = init_paths();
     if !file_errors.is_empty() {
         files_not_created_on_launch(file_errors);
@@ -296,6 +297,9 @@ fn main() {
     }
 
     zlog::init();
+    for warning in migration_warnings {
+        log::warn!("{warning}");
+    }
 
     if stdout_is_a_pty() {
         zlog::init_output_stdout();
@@ -324,7 +328,7 @@ fn main() {
             client::os_info::os_name(),
             client::os_info::os_version(),
         );
-        println!("Wu System Specs (from CLI):\n{}", system_specs);
+        println!("WiSCode System Specs (from CLI):\n{}", system_specs);
         return;
     }
 
@@ -480,7 +484,7 @@ fn main() {
         handle_keymap_file_changes(user_keymap_file_rx, user_keymap_watcher, cx);
 
         let user_agent = format!(
-            "Wu/{} ({}; {})",
+            "WiSCode/{} ({}; {})",
             AppVersion::global(cx),
             std::env::consts::OS,
             std::env::consts::ARCH
@@ -632,6 +636,7 @@ fn main() {
         project_symbols::init(cx);
         project_panel::init(cx);
         outline_panel::init(cx);
+        run_configurations::run_configurations_panel::init(cx);
         agent_chat::init(Some(agent_shell_env_rx), cx);
         tasks_ui::init(cx);
         snippets_ui::init(cx);
@@ -1424,7 +1429,7 @@ fn stdout_is_a_pty() -> bool {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "wu", disable_version_flag = true, max_term_width = 100)]
+#[command(name = "wiscode", disable_version_flag = true, max_term_width = 100)]
 struct Args {
     /// A sequence of space-separated paths or urls that you want to open.
     ///
@@ -1442,9 +1447,9 @@ struct Args {
     /// Sets a custom directory for all user data (e.g., database, extensions, logs).
     ///
     /// This overrides the default platform-specific data directory location.
-    /// On macOS, the default is `~/Library/Application Support/Wu`.
-    /// On Linux/FreeBSD, the default is `$XDG_DATA_HOME/wu`.
-    /// On Windows, the default is `%LOCALAPPDATA%\Wu`.
+    /// On macOS, the default is `~/Library/Application Support/WiSCode`.
+    /// On Linux/FreeBSD, the default is `$XDG_DATA_HOME/wiscode`.
+    /// On Windows, the default is `%LOCALAPPDATA%\WiSCode`.
     #[arg(long, value_name = "DIR", verbatim_doc_comment)]
     user_data_dir: Option<String>,
 

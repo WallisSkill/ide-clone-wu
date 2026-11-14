@@ -1,5 +1,5 @@
 {
-  "Automatically mark all new projects as trusted to unlock all Wu's features": "自动将所有新项目标记为受信任，以使用 Wu 的全部功能",
+  "Automatically mark all new projects as trusted to unlock all WiSCode's features": "自动将所有新项目标记为受信任，以使用 WiSCode 的全部功能",
   "Automatically pull your settings from other editors": "自动从其他编辑器导入你的设置",
   "Base Keymap": "基础键位映射",
   "Cancel": "取消",
@@ -25,7 +25,7 @@
   "The editor that doesn't get in your way": "不打扰你的编辑器",
   "Theme": "主题",
   "Trust All Projects By Default": "默认信任所有项目",
-  "Welcome to Wu": "欢迎使用 Wu",
-  "Wu can only allow services like language servers, project settings, and MCP servers to run after you mark a new project as trusted.": "只有在你将新项目标记为受信任后，Wu 才会允许语言服务器、项目设置和 MCP 服务器等服务运行。",
+  "Welcome to WiSCode": "欢迎使用 WiSCode",
+  "WiSCode can only allow services like language servers, project settings, and MCP servers to run after you mark a new project as trusted.": "只有在你将新项目标记为受信任后，WiSCode 才会允许语言服务器、项目设置和 MCP 服务器等服务运行。",
   "Your {source} settings were successfully imported.": "已成功导入你的 {source} 设置。"
 }

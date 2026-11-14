@@ -72,7 +72,7 @@ async fn main() -> Result<()> {
     log::info!("compiling extension");
 
     let user_agent = format!(
-        "Wu Extension CLI/{} ({}; {})",
+        "WiSCode Extension CLI/{} ({}; {})",
         env!("CARGO_PKG_VERSION"),
         std::env::consts::OS,
         std::env::consts::ARCH
@@ -362,6 +362,24 @@ async fn copy_extension_resources(
             }
         }))
         .await?;
+    }
+
+    // Must match `run_configurations::EXTENSION_RULES_DIR`, which WiSCode reads from installed extensions.
+    let run_configurations_dir = extension_path.join("run_configurations");
+    if fs.is_dir(&run_configurations_dir).await {
+        let output_run_configurations_dir = output_dir.join("run_configurations");
+        fs.create_dir(&output_run_configurations_dir).await?;
+        copy_recursive(
+            fs.as_ref(),
+            &run_configurations_dir,
+            &output_run_configurations_dir,
+            CopyOptions {
+                overwrite: true,
+                ignore_if_exists: false,
+            },
+        )
+        .await
+        .context("failed to copy run configurations")?;
     }
 
     Ok(())

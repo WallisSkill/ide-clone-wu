@@ -400,6 +400,9 @@ pub fn initialize_workspace(app_state: Arc<AppState>, cx: &mut App) {
         let Some(window) = window else {
             return;
         };
+        if workspace::intro::Intro::claim_first_launch() {
+            _multi_workspace.show_intro(cx);
+        }
 
         #[cfg(feature = "track-project-leak")]
         {
@@ -598,7 +601,7 @@ fn show_software_emulation_warning_if_needed(
             )
         };
         let message = t!(
-            "Wu uses {graphics_api} for rendering and requires a compatible GPU.\n\nCurrently you are using a software emulated GPU ({device_name}) which\nwill result in awful performance.\n\nFor troubleshooting see: {docs_url}\nSet ZED_ALLOW_EMULATED_GPU=1 env var to permanently override.",
+            "WiSCode uses {graphics_api} for rendering and requires a compatible GPU.\n\nCurrently you are using a software emulated GPU ({device_name}) which\nwill result in awful performance.\n\nFor troubleshooting see: {docs_url}\nSet ZED_ALLOW_EMULATED_GPU=1 env var to permanently override.",
             graphics_api = graphics_api,
             device_name = specs.device_name,
             docs_url = docs_url
@@ -634,6 +637,11 @@ fn initialize_panels(window: &mut Window, cx: &mut Context<Workspace>) -> Task<a
         let git_panel = GitPanel::load(workspace_handle.clone(), cx.clone());
         let agent_panel = agent_chat::AgentPanel::load(workspace_handle.clone(), cx.clone());
         let chat_panel = agent_chat::ChatPanel::load(workspace_handle.clone(), cx.clone());
+        let run_configurations_panel =
+            run_configurations::run_configurations_panel::RunConfigurationsPanel::load(
+                workspace_handle.clone(),
+                cx.clone(),
+            );
         let debug_panel = DebugPanel::load(workspace_handle.clone(), cx);
 
         async fn add_panel_when_ready(
@@ -660,6 +668,7 @@ fn initialize_panels(window: &mut Window, cx: &mut Context<Workspace>) -> Task<a
             add_panel_when_ready(debug_panel, workspace_handle.clone(), cx.clone()),
             add_panel_when_ready(agent_panel, workspace_handle.clone(), cx.clone()),
             add_panel_when_ready(chat_panel, workspace_handle.clone(), cx.clone()),
+            add_panel_when_ready(run_configurations_panel, workspace_handle.clone(), cx.clone()),
         );
 
         workspace_handle.update(cx, |workspace, cx| {
@@ -1407,7 +1416,7 @@ fn open_about_window(cx: &mut App) {
     cx.open_window(
         WindowOptions {
             titlebar: Some(TitlebarOptions {
-                title: Some(t!("About Wu")),
+                title: Some(t!("About WiSCode")),
                 appears_transparent: true,
                 traffic_light_position: Some(point(px(12.), px(12.))),
             }),

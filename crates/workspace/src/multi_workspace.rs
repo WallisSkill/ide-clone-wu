@@ -79,6 +79,7 @@ pub struct MultiWorkspace {
     pending_removal_tasks: Vec<Task<()>>,
     _serialize_task: Option<Task<()>>,
     _subscriptions: Vec<Subscription>,
+    pub(crate) intro: Option<(Entity<crate::intro::Intro>, Subscription)>,
 }
 
 impl EventEmitter<MultiWorkspaceEvent> for MultiWorkspace {}
@@ -111,6 +112,7 @@ impl MultiWorkspace {
             pending_removal_tasks: Vec::new(),
             _serialize_task: None,
             _subscriptions: vec![release_subscription],
+            intro: None,
         };
         this.keep_if_it_has_folders(0, cx);
         this
@@ -1526,9 +1528,24 @@ impl Render for MultiWorkspace {
                         .overflow_hidden()
                         .child(self.workspace().clone()),
                 )
-                .child(self.workspace().read(cx).modal_layer.clone()),
+                .child(self.workspace().read(cx).modal_layer.clone())
+                .children(self.intro.as_ref().map(|(intro, _)| intro.clone())),
             window,
             cx,
         )
+    }
+}
+
+impl MultiWorkspace {
+    pub fn show_intro(&mut self, cx: &mut Context<Self>) {
+        let intro = cx.new(crate::intro::Intro::new);
+        let subscription = cx.subscribe(&intro, |this, _, event, cx| match event {
+            crate::intro::IntroEvent::Finished => {
+                this.intro = None;
+                cx.notify();
+            }
+        });
+        self.intro = Some((intro, subscription));
+        cx.notify();
     }
 }

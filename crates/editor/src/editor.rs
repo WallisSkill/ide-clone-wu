@@ -27,6 +27,7 @@ mod git;
 mod highlight_matching_bracket;
 pub mod hover_links;
 pub mod hover_popover;
+mod implementation_markers;
 mod indent_guides;
 mod inlays;
 pub mod items;
@@ -1096,6 +1097,7 @@ pub struct Editor {
     last_horizontal_scrollbar_visible: bool,
     expect_bounds_change: Option<Bounds<Pixels>>,
     runnables: RunnableData,
+    implementation_markers: implementation_markers::ImplementationMarkers,
     bookmark_store: Option<Entity<BookmarkStore>>,
     bookmarks_tab_state: Option<Entity<BookmarksTabState>>,
     bookmarks_tab_subscription: Option<Subscription>,
@@ -1612,11 +1614,11 @@ fn remote_upgrade_required_message(error: &anyhow::Error) -> Option<String> {
     }
     let message = match error.error_tag("required") {
         Some(version) => t!(
-            "The remote instance of Wu does not support this yet. It must be upgraded to {version}",
+            "The remote instance of WiSCode does not support this yet. It must be upgraded to {version}",
             version = version
         ),
         None => t!(
-            "The remote instance of Wu does not support this yet. It must be upgraded to the latest version"
+            "The remote instance of WiSCode does not support this yet. It must be upgraded to the latest version"
         ),
     };
     Some(message.to_string())
@@ -2429,6 +2431,7 @@ impl Editor {
                 })
                 .unwrap_or_default(),
             runnables: RunnableData::new(),
+            implementation_markers: implementation_markers::ImplementationMarkers::new(),
             pull_diagnostics_task: Task::ready(()),
             colors: None,
             code_lens: None,
@@ -9772,6 +9775,7 @@ impl Editor {
                 for buffer_id in removed_buffer_ids {
                     self.registered_buffers.remove(buffer_id);
                     self.clear_runnables(Some(*buffer_id));
+                    self.implementation_markers.clear(Some(*buffer_id));
                     self.semantic_token_state.invalidate_buffer(buffer_id);
                     self.lsp_document_symbols.remove(buffer_id);
                     self.lsp_document_links.per_buffer.remove(buffer_id);
@@ -9858,6 +9862,17 @@ impl Editor {
             }
             multi_buffer::Event::DiagnosticsUpdated => {
                 self.update_diagnostics_state(window, cx);
+                // Servers that index the project after opening a file (like jdtls) answer
+                // implementation requests with nothing until they finish, and publish
+                // diagnostics when they do; markers fetched before then must be fetched again.
+                let singleton_buffer_id = self
+                    .buffer()
+                    .read(cx)
+                    .as_singleton()
+                    .map(|buffer| buffer.read(cx).remote_id());
+                if let Some(buffer_id) = singleton_buffer_id {
+                    self.refresh_implementation_markers(Some(buffer_id), window, cx);
+                }
             }
             _ => {}
         };
@@ -11751,11 +11766,17 @@ impl EditorSnapshot {
                     // Matches where `prepaint_button` draws the square, UI-sized icon button.
                     let icon_button =
                         rems(IconSize::XSmall.rems().0 + 0.25).to_pixels(window.rem_size());
+                    let implementation_column = if gutter_settings.implementations {
+                        icon_button + px(2.)
+                    } else {
+                        px(0.)
+                    };
                     (EditorElement::gutter_strip_width(line_height, cx)
                         + px(2.)
                         + icon_button
-                        + px(2.))
-                    .max(ch_width * 2.0 + px(4.))
+                        + px(2.)
+                        + implementation_column)
+                        .max(ch_width * 2.0 + px(4.))
                 } else if show_git_gutter || show_line_numbers {
                     ch_width
                 } else {

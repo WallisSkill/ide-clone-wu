@@ -341,6 +341,7 @@ impl VsCodeSettings {
             }),
             min_line_number_digits: None,
             runnables: None,
+            implementations: None,
             breakpoints: None,
             bookmarks: None,
             folds: self.read_enum("editor.showFoldingControls", |s| match s {

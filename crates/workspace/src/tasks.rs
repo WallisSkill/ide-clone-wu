@@ -14,7 +14,7 @@ use task::{
 use ui::Window;
 use util::TryFutureExt;
 
-use crate::{SaveIntent, Toast, Workspace, notifications::NotificationId};
+use crate::{Event, SaveIntent, Toast, Workspace, notifications::NotificationId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScheduledTaskResult {
@@ -209,6 +209,11 @@ impl Workspace {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        cx.emit(Event::DebugSessionRequested {
+            scenario: scenario.clone(),
+            task_context: task_context.clone(),
+            worktree_id,
+        });
         if let Some(provider) = self.debugger_provider.as_mut() {
             provider.start_session(
                 scenario,

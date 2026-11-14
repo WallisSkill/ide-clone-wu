@@ -80,13 +80,13 @@ jobs:
           export ZED_BUNDLE=true
           export RELEASE_VERSION="$(script/get-crate-version wu)"
           export RUSTFLAGS="-C link-arg=-fuse-ld=lld -C link-args=-Wl,--disable-new-dtags,-rpath,\$ORIGIN/../lib"
-          cargo --config "$config" rustc --release --target aarch64-unknown-linux-gnu --package wu --bin wu -- \
+          cargo --config "$config" rustc --release --target aarch64-unknown-linux-gnu --package wu --bin WiSCode -- \
             -C linker="$CC" -C llvm-args=-addrsig -C link-arg=-fuse-ld=lld "${icf_args[@]}"
-          readelf -p .comment target/aarch64-unknown-linux-gnu/release/wu
+          readelf -p .comment target/aarch64-unknown-linux-gnu/release/WiSCode
       - name: Run wu and check for a crash
         run: |
           set +e -uo pipefail
-          binary="$PWD/target/aarch64-unknown-linux-gnu/release/wu"
+          binary="$PWD/target/aarch64-unknown-linux-gnu/release/WiSCode"
           home="$(mktemp -d)"
           timeout 30 env -i HOME="$home" PATH=/usr/bin:/bin "$binary"
           status=$?

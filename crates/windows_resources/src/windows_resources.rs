@@ -44,11 +44,16 @@ const MANIFEST_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/resources/mani
 pub fn compile(manifest: bool) -> Result<(), Box<dyn std::error::Error>> {
     let channel = option_env!("RELEASE_CHANNEL").unwrap_or("dev");
     let (icon_filename, product_name) = match channel {
-        "stable" => ("app-icon.ico", "Wu"),
-        _ => ("app-icon-dev.ico", "Wu Dev"),
+        "stable" => ("app-icon.ico", "WiSCode"),
+        _ => ("app-icon-dev.ico", "WiSCode Dev"),
     };
     let icon = std::path::PathBuf::from(ICON_DIR).join(icon_filename);
     let icon_escaped = icon.to_string_lossy().replace('\\', "\\\\");
+    // Without these, a changed icon or manifest keeps the previously compiled resource.
+    println!("cargo:rerun-if-changed={}", icon.display());
+    if manifest {
+        println!("cargo:rerun-if-changed={MANIFEST_PATH}");
+    }
 
     let manifest_line = if manifest {
         let escaped = MANIFEST_PATH.replace('\\', "\\\\");

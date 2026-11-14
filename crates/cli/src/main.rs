@@ -48,7 +48,7 @@ trait InstalledApp {
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "wu",
+    name = "wiscode",
     disable_version_flag = true,
     before_help = "The Wu CLI binary.
 This CLI is a separate binary that invokes Wu.
@@ -87,11 +87,11 @@ struct Args {
     classic: bool,
     /// Sets a custom directory for all user data (e.g., database, extensions, logs).
     /// This overrides the default platform-specific data directory location:
-    #[cfg_attr(target_os = "macos", doc = "`~/Library/Application Support/Wu`.")]
-    #[cfg_attr(target_os = "windows", doc = "`%LOCALAPPDATA%\\Wu`.")]
+    #[cfg_attr(target_os = "macos", doc = "`~/Library/Application Support/WiSCode`.")]
+    #[cfg_attr(target_os = "windows", doc = "`%LOCALAPPDATA%\\WiSCode`.")]
     #[cfg_attr(
         not(any(target_os = "windows", target_os = "macos")),
-        doc = "`$XDG_DATA_HOME/wu`."
+        doc = "`$XDG_DATA_HOME/wiscode`."
     )]
     #[arg(long, value_name = "DIR", value_hint = clap::ValueHint::DirPath)]
     user_data_dir: Option<String>,
@@ -545,7 +545,7 @@ fn run() -> Result<()> {
     if args.system_specs {
         let path = app.path();
         let msg = [
-            "The `--system-specs` argument is not supported in the Wu CLI, only on Wu binary.",
+            "The `--system-specs` argument is not supported in the WiSCode CLI, only on WiSCode binary.",
             "To retrieve the system specs on the command line, run the following command:",
             &format!("{} --system-specs", path.display()),
         ];
@@ -576,7 +576,7 @@ fn run() -> Result<()> {
     }
 
     let (server, server_name) =
-        IpcOneShotServer::<IpcHandshake>::new().context("Handshake before Wu spawn")?;
+        IpcOneShotServer::<IpcHandshake>::new().context("Handshake before WiSCode spawn")?;
     let url = format!("wu-cli://{server_name}");
 
     let open_behavior = if args.new {
@@ -697,7 +697,7 @@ fn run() -> Result<()> {
             let exit_status = exit_status.clone();
             let user_data_dir_for_thread = user_data_dir.clone();
             move || {
-                let (_, handshake) = server.accept().context("Handshake after Wu spawn")?;
+                let (_, handshake) = server.accept().context("Handshake after WiSCode spawn")?;
                 let (tx, rx) = (handshake.requests, handshake.responses);
 
                 #[cfg(target_os = "windows")]
@@ -841,7 +841,7 @@ fn prompt_open_behavior() -> Option<cli::CliBehaviorSetting> {
     let blue = console::Style::new().blue();
     let items = [
         format!(
-            "Add to existing Wu window ({})",
+            "Add to existing WiSCode window ({})",
             blue.apply_to("wu --existing")
         ),
         format!("Open a new window ({})", blue.apply_to("wu --classic")),
@@ -850,7 +850,7 @@ fn prompt_open_behavior() -> Option<cli::CliBehaviorSetting> {
     let prompt = format!(
         "Configure default behavior for {}\n{}",
         blue.apply_to("wu <path>"),
-        console::style("You can change this later in Wu settings"),
+        console::style("You can change this later in WiSCode settings"),
     );
 
     let selection = dialoguer::Select::new()
@@ -914,7 +914,7 @@ mod linux {
     impl InstalledApp for App {
         fn zed_version_string(&self) -> String {
             format!(
-                "Wu {}{}{} – {}",
+                "WiSCode {}{}{} – {}",
                 if *release_channel::RELEASE_CHANNEL_NAME == "stable" {
                     "".to_string()
                 } else {
@@ -1137,7 +1137,7 @@ mod flatpak {
             let flatpak_dir = Path::new("/flatpak");
             let args = restart_cli_args(flatpak_dir, &["project".into()]);
             let parsed =
-                crate::Args::try_parse_from(std::iter::once(OsString::from("wu")).chain(args))
+                crate::Args::try_parse_from(std::iter::once(OsString::from("wiscode")).chain(args))
                     .unwrap();
 
             assert_eq!(parsed.zed, Some(flatpak_dir.join("libexec/wu-editor")));
@@ -1200,7 +1200,7 @@ mod windows {
     impl InstalledApp for App {
         fn zed_version_string(&self) -> String {
             format!(
-                "Wu {}{}{} – {}",
+                "WiSCode {}{}{} – {}",
                 if *release_channel::RELEASE_CHANNEL_NAME == "stable" {
                     "".to_string()
                 } else {
@@ -1275,9 +1275,9 @@ mod windows {
                 let cli = std::env::current_exe()?;
                 let dir = cli.parent().context("no parent path for cli")?;
 
-                // ../Wu.exe is the standard, lib/wu is for MSYS2, ./wu.exe is for the target
+                // ../WiSCode.exe is the standard, lib/wiscode is for MSYS2, ./WiSCode.exe is for the target
                 // directory in development builds.
-                let possible_locations = ["../Wu.exe", "../lib/wu/wu-editor.exe", "./wu.exe"];
+                let possible_locations = ["../WiSCode.exe", "../lib/wiscode/wiscode-editor.exe", "./WiSCode.exe"];
                 possible_locations
                     .iter()
                     .find_map(|p| dir.join(p).canonicalize().ok().filter(|path| path != &cli))
@@ -1388,7 +1388,7 @@ mod mac_os {
 
     impl InstalledApp for Bundle {
         fn zed_version_string(&self) -> String {
-            format!("Wu {} – {}", self.version(), self.path().display(),)
+            format!("WiSCode {} – {}", self.version(), self.path().display(),)
         }
 
         fn launch(&self, url: String, user_data_dir: Option<&str>) -> anyhow::Result<()> {

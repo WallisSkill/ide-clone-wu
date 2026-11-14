@@ -1610,7 +1610,7 @@ async fn questions_answered_elsewhere_stop_waiting_for_wu() {
                 .unwrap()
                 .iter()
                 .any(|(path, _)| path.contains("que_1")),
-            "Wu answered a question that was already settled"
+            "WiSCode answered a question that was already settled"
         );
     }
 }

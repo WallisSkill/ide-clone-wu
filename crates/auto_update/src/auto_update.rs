@@ -75,7 +75,7 @@ impl UpdateLock {
         match file.try_lock() {
             Ok(()) => Ok(Self { _file: file }),
             Err(std::fs::TryLockError::WouldBlock) => {
-                anyhow::bail!("another Wu instance is already checking for updates")
+                anyhow::bail!("another WiSCode instance is already checking for updates")
             }
             Err(std::fs::TryLockError::Error(error)) => {
                 Err(error).with_context(|| format!("locking update lock at {path:?}"))
@@ -249,9 +249,9 @@ struct GitHubReleaseAsset {
 
 fn github_asset_name(asset: &str, os: &str, arch: &str) -> Result<String> {
     match (asset, os) {
-        ("zed", "macos") => Ok(format!("Wu-{arch}.dmg")),
+        ("zed", "macos") => Ok(format!("WiSCode-{arch}.dmg")),
         ("zed", "linux") => Ok(format!("wu-linux-{arch}.tar.gz")),
-        ("zed", "windows") => Ok(format!("Wu-{arch}.exe")),
+        ("zed", "windows") => Ok(format!("WiSCode-{arch}.exe")),
         ("wu-remote-server", _) => Ok(format!("wu-remote-server-{os}-{arch}.gz")),
         _ => anyhow::bail!("no release asset for {asset} on {os}"),
     }
@@ -376,7 +376,7 @@ pub fn check(_: &Check, window: &mut Window, cx: &mut App) {
     {
         drop(window.prompt(
             gpui::PromptLevel::Info,
-            &t!("Wu was installed via a package manager."),
+            &t!("WiSCode was installed via a package manager."),
             Some(&message),
             &[PromptButton::ok(t!("OK"))],
             cx,
@@ -455,7 +455,7 @@ impl InstallerDir {
     async fn new() -> Result<Self> {
         let installer_dir = std::env::current_exe()?
             .parent()
-            .context("No parent dir for Wu.exe")?
+            .context("No parent dir for WiSCode.exe")?
             .join("updates");
         if smol::fs::metadata(&installer_dir).await.is_ok() {
             smol::fs::remove_dir_all(&installer_dir).await?;
@@ -959,9 +959,9 @@ impl AutoUpdater {
 
     async fn target_path(installer_dir: &InstallerDir) -> Result<PathBuf> {
         let filename = match OS {
-            "macos" => anyhow::Ok("Wu.dmg"),
+            "macos" => anyhow::Ok("WiSCode.dmg"),
             "linux" => Ok("wu.tar.gz"),
-            "windows" => Ok("Wu.exe"),
+            "windows" => Ok("WiSCode.exe"),
             unsupported_os => anyhow::bail!("not supported: {unsupported_os}"),
         }?;
 
@@ -1265,7 +1265,7 @@ async fn install_release_linux(
 
     anyhow::ensure!(
         output.status.success(),
-        "failed to copy Wu update from {:?} to {:?}: {:?}",
+        "failed to copy WiSCode update from {:?} to {:?}: {:?}",
         from,
         to,
         String::from_utf8_lossy(&output.stderr)
@@ -1379,7 +1379,7 @@ async fn cleanup_stale_installer_dirs() {
 async fn cleanup_windows() -> Result<()> {
     let parent = std::env::current_exe()?
         .parent()
-        .context("No parent dir for Wu.exe")?
+        .context("No parent dir for WiSCode.exe")?
         .to_owned();
 
     // keep in sync with crates/auto_update_helper/src/updater.rs. `updates` and
@@ -1422,7 +1422,7 @@ async fn install_release_windows(downloaded_installer: &Path) -> Result<Option<P
     // deleting the old one, and launching the new binary.
     let helper_path = std::env::current_exe()?
         .parent()
-        .context("No parent dir for Wu.exe")?
+        .context("No parent dir for WiSCode.exe")?
         .join("tools")
         .join("auto_update_helper.exe");
     Ok(Some(helper_path))

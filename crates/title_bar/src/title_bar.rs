@@ -28,6 +28,7 @@ use project::{
     trusted_worktrees::TrustedWorktrees,
 };
 use remote::RemoteConnectionOptions;
+use run_configurations::RunConfigurations;
 use settings::Settings as _;
 
 use std::path::Path;
@@ -208,6 +209,7 @@ pub struct TitleBar {
     _subscriptions: Vec<Subscription>,
     banner: Option<Entity<OnboardingBanner>>,
     update_version: Entity<UpdateVersion>,
+    run_configurations: Entity<RunConfigurations>,
 }
 
 impl Render for TitleBar {
@@ -351,6 +353,9 @@ impl Render for TitleBar {
                 .pr_1()
                 .gap_1()
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                .when(!self.project.read(cx).is_via_remote_server(), |this| {
+                    this.child(self.run_configurations.clone())
+                })
                 .child(self.update_version.clone())
                 .into_any_element(),
         );
@@ -451,6 +456,7 @@ impl TitleBar {
         }
 
         let update_version = cx.new(|cx| UpdateVersion::new(cx));
+        let run_configurations = RunConfigurations::for_workspace(workspace, cx);
         let platform_titlebar = cx.new(|cx| {
             let mut titlebar = PlatformTitleBar::new(id, cx);
             if let Some(mw) = multi_workspace.clone() {
@@ -474,6 +480,7 @@ impl TitleBar {
             _subscriptions: subscriptions,
             banner,
             update_version,
+            run_configurations,
         };
         if let Some(multi_workspace) = multi_workspace {
             this.observe_multi_workspace(&multi_workspace, cx);

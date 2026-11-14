@@ -1841,12 +1841,28 @@ pub struct AvailableCodeAction {
     pub provider: Rc<dyn CodeActionProvider>,
 }
 
+/// Tasks with this tag exist only so that a debug locator can turn them into a debug
+/// scenario; the menu shows that scenario's Run and Debug entries instead of the task.
+pub const DEBUG_ONLY_TASK_TAG: &str = "debug-only";
+
 #[derive(Clone)]
 pub struct CodeActionContents {
     tasks: Option<Rc<ResolvedTasks>>,
     actions: Option<Rc<[AvailableCodeAction]>>,
+    run_scenarios: Vec<DebugScenario>,
     debug_scenarios: Vec<DebugScenario>,
     pub(crate) context: TaskContext,
+}
+
+/// `noDebug` is the standard DAP launch argument for running a program through its
+/// debug adapter without stopping at breakpoints.
+fn without_debugging(scenario: &DebugScenario) -> Option<DebugScenario> {
+    let mut scenario = scenario.clone();
+    scenario
+        .config
+        .as_object_mut()?
+        .insert("noDebug".to_string(), serde_json::Value::Bool(true));
+    Some(scenario)
 }
 
 impl CodeActionContents {
@@ -1856,9 +1872,23 @@ impl CodeActionContents {
         debug_scenarios: Vec<DebugScenario>,
         context: TaskContext,
     ) -> Self {
+        let tasks = tasks.map(|mut tasks| {
+            tasks.templates.retain(|(_, task)| {
+                !task
+                    .original_task()
+                    .tags
+                    .iter()
+                    .any(|tag| tag == DEBUG_ONLY_TASK_TAG)
+            });
+            tasks
+        });
         Self {
             tasks: tasks.map(Rc::new),
             actions,
+            run_scenarios: debug_scenarios
+                .iter()
+                .filter_map(without_debugging)
+                .collect(),
             debug_scenarios,
             context,
         }
@@ -1871,7 +1901,7 @@ impl CodeActionContents {
     fn len(&self) -> usize {
         let tasks_len = self.tasks.as_ref().map_or(0, |tasks| tasks.templates.len());
         let code_actions_len = self.actions.as_ref().map_or(0, |actions| actions.len());
-        tasks_len + code_actions_len + self.debug_scenarios.len()
+        tasks_len + code_actions_len + self.run_scenarios.len() + self.debug_scenarios.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -1893,6 +1923,12 @@ impl CodeActionContents {
                     provider: available.provider.clone(),
                 })
             }))
+            .chain(
+                self.run_scenarios
+                    .iter()
+                    .cloned()
+                    .map(CodeActionsItem::RunScenario),
+            )
             .chain(
                 self.debug_scenarios
                     .iter()
@@ -1919,6 +1955,10 @@ impl CodeActionContents {
                 index -= actions.len();
             }
         }
+        if let Some(scenario) = self.run_scenarios.get(index) {
+            return Some(CodeActionsItem::RunScenario(scenario.clone()));
+        }
+        index -= self.run_scenarios.len();
 
         self.debug_scenarios
             .get(index)
@@ -1934,6 +1974,8 @@ pub enum CodeActionsItem {
         action: CodeAction,
         provider: Rc<dyn CodeActionProvider>,
     },
+    /// A debug scenario started with `noDebug`, i.e. run through the debug adapter.
+    RunScenario(DebugScenario),
     DebugScenario(DebugScenario),
 }
 
@@ -1942,7 +1984,9 @@ impl CodeActionsItem {
         match self {
             Self::CodeAction { action, .. } => action.lsp_action.title().to_owned(),
             Self::Task(_, task) => task.resolved_label.clone(),
-            Self::DebugScenario(scenario) => scenario.label.to_string(),
+            Self::RunScenario(scenario) | Self::DebugScenario(scenario) => {
+                scenario.label.to_string()
+            }
         }
     }
 
@@ -1950,6 +1994,7 @@ impl CodeActionsItem {
         match self {
             Self::CodeAction { action, .. } => action.lsp_action.title().replace("\n", ""),
             Self::Task(_, task) => task.resolved_label.replace("\n", ""),
+            Self::RunScenario(scenario) => t!("run: {label}", label = scenario.label).to_string(),
             Self::DebugScenario(scenario) => {
                 t!("debug: {label}", label = scenario.label).to_string()
             }
@@ -2107,8 +2152,8 @@ impl CodeActionsMenu {
                     CodeActionsItem::CodeAction { action, .. } => {
                         action.lsp_action.title().chars().count()
                     }
-                    CodeActionsItem::DebugScenario(scenario) => {
-                        t!("debug: {label}", label = scenario.label).chars().count()
+                    CodeActionsItem::RunScenario(_) | CodeActionsItem::DebugScenario(_) => {
+                        action.menu_label().chars().count()
                     }
                 })
                 .map(|(ix, _)| ix),

@@ -1,6 +1,6 @@
 {
   "cli::InstallCliBinary": {
-    "description": "将 Wu 命令行工具安装到系统 PATH。",
+    "description": "将 WiSCode 命令行工具安装到系统 PATH。",
     "name": "安装命令行工具"
   },
   "cli::RegisterWuScheme": {

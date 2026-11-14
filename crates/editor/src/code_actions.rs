@@ -275,7 +275,7 @@ impl Editor {
                     .await
                 }))
             }
-            CodeActionsItem::DebugScenario(scenario) => {
+            CodeActionsItem::RunScenario(scenario) | CodeActionsItem::DebugScenario(scenario) => {
                 let context = actions_menu.actions.context.into();
 
                 workspace.update(cx, |workspace, cx| {

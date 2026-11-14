@@ -353,7 +353,7 @@ pub fn get_shell_safe_zed_path(shell_kind: shell::ShellKind) -> anyhow::Result<S
 
     zed_path
         .try_shell_safe(shell_kind)
-        .context("Failed to shell-escape Wu executable path.")
+        .context("Failed to shell-escape WiSCode executable path.")
 }
 
 /// Returns a path for the zed cli executable, this function
@@ -371,8 +371,8 @@ pub fn get_zed_cli_path() -> Result<PathBuf> {
         // so here ./cli is for both installed and development builds.
         &["./cli"]
     } else if cfg!(target_os = "windows") {
-        // bin/wu.exe is for installed builds, ./cli.exe is for development builds.
-        &["bin/wu.exe", "./cli.exe"]
+        // bin/wiscode.exe is for installed builds, ./cli.exe is for development builds.
+        &["bin/wiscode.exe", "./cli.exe"]
     } else if cfg!(target_os = "linux") || cfg!(target_os = "freebsd") {
         // bin is the standard, ./cli is for the target directory in development builds.
         &["../bin/wu", "./cli"]

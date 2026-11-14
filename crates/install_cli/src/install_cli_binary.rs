@@ -88,7 +88,7 @@ pub fn install_cli_binary(window: &mut Window, cx: &mut Context<Workspace>) {
                 PromptLevel::Warning,
                 &t!("CLI should already be installed"),
                 Some(&t!(
-                    "If you installed Wu from our official release add ~/.local/bin to your PATH.\n\nIf you installed Wu from a different source like your package manager, then you may need to create an alias/symlink manually.\n\nDepending on your package manager, the CLI might be named zeditor, zedit, zed-editor or something else."
+                    "If you installed WiSCode from our official release add ~/.local/bin to your PATH.\n\nIf you installed WiSCode from a different source like your package manager, then you may need to create an alias/symlink manually.\n\nDepending on your package manager, the CLI might be named zeditor, zedit, zed-editor or something else."
                 )),
                 &[PromptButton::ok(t!("OK"))],
             );
@@ -113,7 +113,7 @@ pub fn install_cli_binary(window: &mut Window, cx: &mut Context<Workspace>) {
                                     t!("You can add `wu` to your PATH manually."),
                                     cx,
                                 )
-                                .with_title(t!("Couldn't install the Wu CLI"))
+                                .with_title(t!("Couldn't install the WiSCode CLI"))
                                 .more_info_message(t!("Show me how"))
                                 .more_info_url(CANT_INSTALL_DOCS_URL)
                             })
@@ -143,5 +143,5 @@ pub fn install_cli_binary(window: &mut Window, cx: &mut Context<Workspace>) {
         register_wu_scheme(cx).await.log_err();
         Ok(())
     })
-    .detach_and_prompt_err(&t!("Cannot install the Wu CLI"), window, cx, |_, _, _| None);
+    .detach_and_prompt_err(&t!("Cannot install the WiSCode CLI"), window, cx, |_, _, _| None);
 }

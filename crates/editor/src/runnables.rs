@@ -167,6 +167,7 @@ impl Editor {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.refresh_implementation_markers(invalidate_buffer_data, window, cx);
         if !self.mode().is_full()
             || !EditorSettings::get_global(cx).gutter.runnables
             || !self.enable_runnables

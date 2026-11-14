@@ -2602,6 +2602,40 @@ impl EditorElement {
         })
     }
 
+    fn layout_implementation_markers(
+        &self,
+        gutter: &Gutter,
+        range: Range<DisplayRow>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Vec<AnyElement> {
+        if self.split_side == Some(SplitSide::Left) {
+            return Vec::new();
+        }
+
+        self.editor.update(cx, |editor, cx| {
+            if !editor.buffer().read(cx).is_singleton() {
+                return Vec::new();
+            }
+            editor
+                .active_implementation_markers(range, window, cx)
+                .into_iter()
+                .filter_map(|(display_row, marker)| {
+                    gutter.layout_secondary_column_item(
+                        display_row,
+                        |cx, _| {
+                            editor
+                                .render_implementation_marker(&marker, display_row, cx)
+                                .into_any_element()
+                        },
+                        window,
+                        cx,
+                    )
+                })
+                .collect_vec()
+        })
+    }
+
     fn layout_run_indicators(
         &self,
         gutter: &Gutter,
@@ -5448,6 +5482,10 @@ impl EditorElement {
             for test_indicator in layout.test_indicators.iter_mut() {
                 test_indicator.paint(window, cx);
             }
+
+            for implementation_marker in layout.implementation_markers.iter_mut() {
+                implementation_marker.paint(window, cx);
+            }
         });
     }
 
@@ -6888,14 +6926,42 @@ impl Gutter<'_> {
             return None;
         }
 
-        let button = self.prepaint_button(render_item(cx, window), display_row, window, cx);
+        let button = self.prepaint_button(render_item(cx, window), display_row, 0, window, cx);
         Some(button)
+    }
+
+    /// Lays out an item in the secondary gutter column, to the right of the
+    /// column shared by runnables, breakpoints and bookmarks.
+    fn layout_secondary_column_item(
+        &self,
+        display_row: DisplayRow,
+        render_item: impl Fn(&mut Context<'_, Editor>, &mut Window) -> AnyElement,
+        window: &mut Window,
+        cx: &mut Context<'_, Editor>,
+    ) -> Option<AnyElement> {
+        if !self.range.contains(&display_row) {
+            return None;
+        }
+        if self
+            .row_infos
+            .get((display_row.0.saturating_sub(self.range.start.0)) as usize)
+            .is_some_and(|row_info| {
+                row_info.expand_info.is_some()
+                    || row_info
+                        .diff_status
+                        .is_some_and(|status| status.is_deleted())
+            })
+        {
+            return None;
+        }
+        Some(self.prepaint_button(render_item(cx, window), display_row, 1, window, cx))
     }
 
     fn prepaint_button(
         &self,
         mut button: AnyElement,
         row: DisplayRow,
+        column: usize,
         window: &mut Window,
         cx: &mut App,
     ) -> AnyElement {
@@ -6907,7 +6973,7 @@ impl Gutter<'_> {
         let git_gutter_width = EditorElement::gutter_strip_width(self.line_height, cx)
             + self.dimensions.git_blame_entries_width.unwrap_or_default();
 
-        let x = git_gutter_width + px(2.);
+        let x = git_gutter_width + px(2.) + (indicator_size.width + px(2.)) * column as f32;
 
         let mut y = Pixels::from(
             (row.as_f64() - self.scroll_position.y) * ScrollPixelOffset::from(self.line_height),
@@ -9484,6 +9550,12 @@ impl Element for EditorElement {
                         Vec::new()
                     };
 
+                    let implementation_markers = if gutter_settings.implementations {
+                        self.layout_implementation_markers(&gutter, start_row..end_row, window, cx)
+                    } else {
+                        Vec::new()
+                    };
+
                     let show_bookmarks =
                         snapshot.show_bookmarks.unwrap_or(gutter_settings.bookmarks);
 
@@ -9779,6 +9851,7 @@ impl Element for EditorElement {
                         diff_hunk_controls,
                         mouse_context_menu,
                         test_indicators,
+                        implementation_markers,
                         bookmarks,
                         breakpoints,
                         crease_toggles,
@@ -9994,6 +10067,7 @@ pub struct EditorLayout {
     navigation_overlay_paint_commands: Vec<NavigationOverlayPaintCommand>,
     selections: Vec<(PlayerColor, Vec<SelectionLayout>)>,
     test_indicators: Vec<AnyElement>,
+    implementation_markers: Vec<AnyElement>,
     bookmarks: Vec<AnyElement>,
     breakpoints: Vec<AnyElement>,
     crease_toggles: Vec<Option<AnyElement>>,

@@ -425,12 +425,38 @@ impl ExtensionStore {
         {
             extension_index = index;
             if let (Ok(Some(index_metadata)), Ok(Some(extensions_metadata))) =
-                (index_metadata, extensions_metadata)
+                (&index_metadata, &extensions_metadata)
                 && index_metadata
                     .mtime
                     .bad_is_greater_than(extensions_metadata.mtime)
             {
                 extension_index_needs_rebuild = false;
+            }
+            // A dev extension is a link to a folder elsewhere, so editing its manifest does not
+            // touch the installed directory's mtime; compare each dev manifest directly.
+            if !extension_index_needs_rebuild
+                && let Ok(Some(index_metadata)) = &index_metadata
+            {
+                let dev_manifest_paths = extension_index
+                    .extensions
+                    .iter()
+                    .filter(|(_, entry)| entry.dev)
+                    .map(|(id, _)| this.installed_dir.join(id.as_ref()).join("extension.toml"))
+                    .collect::<Vec<_>>();
+                extension_index_needs_rebuild =
+                    cx.foreground_executor().block_on(async {
+                        for manifest_path in dev_manifest_paths {
+                            if let Ok(Some(manifest_metadata)) =
+                                this.fs.metadata(&manifest_path).await
+                                && manifest_metadata
+                                    .mtime
+                                    .bad_is_greater_than(index_metadata.mtime)
+                            {
+                                return true;
+                            }
+                        }
+                        false
+                    });
             }
         }
 

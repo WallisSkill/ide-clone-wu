@@ -1,6 +1,6 @@
 {
   "wu::About": {
-    "description": "显示 Wu 的相关信息。",
+    "description": "显示 WiSCode 的相关信息。",
     "name": "关于"
   },
   "wu::CopySystemSpecsIntoClipboard": {
@@ -92,7 +92,7 @@
     "name": "查看开源许可证"
   },
   "wu::OpenLog": {
-    "description": "打开 Wu 的日志文件。",
+    "description": "打开 WiSCode 的日志文件。",
     "name": "打开日志"
   },
   "wu::OpenOnboarding": {
@@ -144,7 +144,7 @@
   },
   "wu::OpenWuUrl": {
     "description": "在应用内打开 wu:// 链接。",
-    "name": "打开 Wu 链接"
+    "name": "打开 WiSCode 链接"
   },
   "wu::Quit": {
     "description": "退出应用。",
@@ -175,7 +175,7 @@
     "name": "重置界面字号"
   },
   "wu::RevealLogInFileManager": {
-    "description": "在系统文件管理器中显示 Wu 的日志文件。",
+    "description": "在系统文件管理器中显示 WiSCode 的日志文件。",
     "name": "在文件管理器中显示日志"
   },
   "wu::ShowAll": {
@@ -191,7 +191,7 @@
     "name": "显示更新通知"
   },
   "wu::ShowWelcome": {
-    "description": "显示 Wu 的欢迎页。",
+    "description": "显示 WiSCode 的欢迎页。",
     "name": "显示欢迎页"
   },
   "wu::ToggleBaseKeymapSelector": {

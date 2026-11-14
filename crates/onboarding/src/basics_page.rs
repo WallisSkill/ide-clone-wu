@@ -291,14 +291,14 @@ fn render_worktree_auto_trust_switch(tab_index: &mut isize, cx: &mut App) -> imp
     };
 
     let tooltip_description = t!(
-        "Wu can only allow services like language servers, project settings, and MCP servers to run after you mark a new project as trusted."
+        "WiSCode can only allow services like language servers, project settings, and MCP servers to run after you mark a new project as trusted."
     );
 
     SwitchField::new(
         "onboarding-auto-trust-worktrees",
         Some(t!("Trust All Projects By Default")),
         Some(t!(
-            "Automatically mark all new projects as trusted to unlock all Wu's features"
+            "Automatically mark all new projects as trusted to unlock all WiSCode's features"
         )),
         toggle_state,
         {

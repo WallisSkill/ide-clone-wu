@@ -5,7 +5,7 @@ name = "wu"
 version = "1.2.2"
 publish.workspace = true
 license = "GPL-3.0-or-later"
-default-run = "wu"
+default-run = "WiSCode"
 
 [lints]
 workspace = true
@@ -48,7 +48,7 @@ visual-tests = [
 ]
 
 [[bin]]
-name = "wu"
+name = "WiSCode"
 path = "src/main.rs"
 
 [[bin]]
@@ -141,6 +141,7 @@ parking_lot.workspace = true
 paths.workspace = true
 picker.workspace = true
 profiling.workspace = true
+run_configurations.workspace = true
 project.workspace = true
 project_panel.workspace = true
 project_symbols.workspace = true
@@ -237,7 +238,7 @@ search = { workspace = true, features = ["test-support"] }
 [package.metadata.bundle-dev]
 icon = ["resources/app-icon-dev@2x.png", "resources/app-icon-dev.png"]
 identifier = "me.farshed.Wu-Dev"
-name = "Wu Dev"
+name = "WiSCode Dev"
 osx_minimum_system_version = "10.15.7"
 osx_info_plist_exts = ["resources/info/*"]
 osx_url_schemes = ["wu"]
@@ -245,7 +246,7 @@ osx_url_schemes = ["wu"]
 [package.metadata.bundle-stable]
 icon = ["resources/app-icon@2x.png", "resources/app-icon.png"]
 identifier = "me.farshed.Wu"
-name = "Wu"
+name = "WiSCode"
 osx_minimum_system_version = "10.15.7"
 osx_info_plist_exts = ["resources/info/*"]
 osx_url_schemes = ["wu"]

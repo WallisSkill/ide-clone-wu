@@ -165,6 +165,7 @@ pub enum IconName {
     Gitea,
     Github,
     Gitlab,
+    GoToImplementation,
     Hash,
     HistoryRerun,
     Image,

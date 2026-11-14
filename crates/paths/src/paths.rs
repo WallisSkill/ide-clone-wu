@@ -1,4 +1,4 @@
-//! Paths to locations used by Wu.
+//! Paths to locations used by WiSCode.
 
 use anyhow::Context as _;
 use std::env;
@@ -16,7 +16,11 @@ pub const EDITORCONFIG_NAME: &str = ".editorconfig";
 /// and state directory paths.
 ///
 /// Forks should change this to avoid colliding with Zed's user data.
-pub const APP_NAME: &str = "Wu";
+pub const APP_NAME: &str = "WiSCode";
+
+/// The application name used before the rename to WiSCode. Its directories are
+/// migrated on first launch so existing users keep their settings and data.
+const LEGACY_APP_NAME: &str = "Wu";
 
 /// Lowercased form of [`APP_NAME`], for use in XDG-style paths on
 /// Linux/FreeBSD and the macOS `~/.config` fallback.
@@ -54,16 +58,16 @@ static CUSTOM_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// The resolved data directory, combining custom override or platform defaults.
 /// This is set once and cached for subsequent calls.
-/// On macOS, this is `~/Library/Application Support/Wu`.
-/// On Linux/FreeBSD, this is `$XDG_DATA_HOME/wu`.
-/// On Windows, this is `%LOCALAPPDATA%\Wu`.
+/// On macOS, this is `~/Library/Application Support/WiSCode`.
+/// On Linux/FreeBSD, this is `$XDG_DATA_HOME/wiscode`.
+/// On Windows, this is `%LOCALAPPDATA%\WiSCode`.
 static CURRENT_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// The resolved config directory, combining custom override or platform defaults.
 /// This is set once and cached for subsequent calls.
-/// On macOS, this is `~/.config/wu`.
-/// On Linux/FreeBSD, this is `$XDG_CONFIG_HOME/wu`.
-/// On Windows, this is `%APPDATA%\Wu`.
+/// On macOS, this is `~/.config/wiscode`.
+/// On Linux/FreeBSD, this is `$XDG_CONFIG_HOME/wiscode`.
+/// On Windows, this is `%APPDATA%\WiSCode`.
 static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// Returns the relative path to the wu_server directory on the ssh host.
@@ -145,7 +149,7 @@ pub fn custom_data_dir_instance_hash() -> Option<u64> {
     Some(hash)
 }
 
-/// Returns the path to the configuration directory used by Wu.
+/// Returns the path to the configuration directory used by WiSCode.
 pub fn config_dir() -> &'static PathBuf {
     CONFIG_DIR.get_or_init(|| {
         if let Some(custom_dir) = CUSTOM_DATA_DIR.get() {
@@ -167,7 +171,7 @@ pub fn config_dir() -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the data directory used by Wu.
+/// Returns the path to the data directory used by WiSCode.
 pub fn data_dir() -> &'static PathBuf {
     CURRENT_DATA_DIR.get_or_init(|| {
         if let Some(custom_dir) = CUSTOM_DATA_DIR.get() {
@@ -216,7 +220,7 @@ pub fn state_dir() -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the temp directory used by Wu.
+/// Returns the path to the temp directory used by WiSCode.
 pub fn temp_dir() -> &'static PathBuf {
     static TEMP_DIR: OnceLock<PathBuf> = OnceLock::new();
     TEMP_DIR.get_or_init(|| {
@@ -257,19 +261,88 @@ pub fn logs_dir() -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the Wu server directory on this SSH host.
+/// Moves the per-user directories of the legacy app name to their new location
+/// when the new location does not exist yet. Returns human-readable warnings for
+/// directories that could not be migrated; the app then starts with fresh ones.
+pub fn migrate_legacy_app_dirs() -> Vec<String> {
+    if custom_data_dir().is_some() {
+        return Vec::new();
+    }
+    let mut candidates = vec![config_dir().clone(), data_dir().clone(), state_dir().clone()];
+    if cfg!(target_os = "macos") {
+        candidates.push(logs_dir().clone());
+    }
+    candidates.sort();
+    candidates.dedup();
+
+    let mut warnings = Vec::new();
+    for new_dir in candidates {
+        let Some(legacy_dir) = legacy_dir_for(&new_dir) else {
+            continue;
+        };
+        if new_dir.exists() || !legacy_dir.is_dir() {
+            continue;
+        }
+        if let Some(parent) = new_dir.parent()
+            && let Err(error) = std::fs::create_dir_all(parent)
+        {
+            warnings.push(format!("could not create {}: {error}", parent.display()));
+            continue;
+        }
+        if let Err(rename_error) = std::fs::rename(&legacy_dir, &new_dir) {
+            // Renaming fails when another process (e.g. a still-running old
+            // build) holds files open, so fall back to copying.
+            if let Err(copy_error) = copy_dir_recursive(&legacy_dir, &new_dir) {
+                warnings.push(format!(
+                    "could not migrate {} to {}: {rename_error}; copy also failed: {copy_error}",
+                    legacy_dir.display(),
+                    new_dir.display()
+                ));
+            }
+        }
+    }
+    warnings
+}
+
+fn legacy_dir_for(new_dir: &Path) -> Option<PathBuf> {
+    let file_name = new_dir.file_name()?.to_str()?;
+    let legacy_name = if file_name == APP_NAME {
+        LEGACY_APP_NAME.to_string()
+    } else if file_name == APP_NAME_LOWERCASE {
+        LEGACY_APP_NAME.to_ascii_lowercase()
+    } else {
+        return None;
+    };
+    Some(new_dir.with_file_name(legacy_name))
+}
+
+fn copy_dir_recursive(source: &Path, destination: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(destination)?;
+    for entry in std::fs::read_dir(source)? {
+        let entry = entry?;
+        let target = destination.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir_recursive(&entry.path(), &target)?;
+        } else {
+            std::fs::copy(entry.path(), &target)?;
+        }
+    }
+    Ok(())
+}
+
+/// Returns the path to the WiSCode server directory on this SSH host.
 pub fn remote_server_state_dir() -> &'static PathBuf {
     static REMOTE_SERVER_STATE: OnceLock<PathBuf> = OnceLock::new();
     REMOTE_SERVER_STATE.get_or_init(|| data_dir().join("server_state"))
 }
 
-/// Returns the path to the `Wu.log` file.
+/// Returns the path to the `WiSCode.log` file.
 pub fn log_file() -> &'static PathBuf {
     static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
     LOG_FILE.get_or_init(|| logs_dir().join(format!("{}.log", APP_NAME)))
 }
 
-/// Returns the path to the `Wu.log.old` file.
+/// Returns the path to the `WiSCode.log.old` file.
 pub fn old_log_file() -> &'static PathBuf {
     static OLD_LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
     OLD_LOG_FILE.get_or_init(|| logs_dir().join(format!("{}.log.old", APP_NAME)))
@@ -340,7 +413,7 @@ pub fn debug_scenarios_file() -> &'static PathBuf {
 /// Returns the path to the user-global `AGENTS.md` file.
 ///
 /// This file holds personal agent instructions that apply to every project the
-/// user opens, and is loaded into the native Wu agent's system prompt.
+/// user opens, and is loaded into the native WiSCode agent's system prompt.
 pub fn agents_file() -> &'static PathBuf {
     static AGENTS_FILE: OnceLock<PathBuf> = OnceLock::new();
     AGENTS_FILE.get_or_init(|| config_dir().join("AGENTS.md"))
@@ -458,7 +531,7 @@ pub fn embeddings_dir() -> &'static PathBuf {
 
 /// Returns the path to the languages directory.
 ///
-/// This is where language servers are downloaded to for languages built-in to Wu.
+/// This is where language servers are downloaded to for languages built-in to WiSCode.
 pub fn languages_dir() -> &'static PathBuf {
     static LANGUAGES_DIR: OnceLock<PathBuf> = OnceLock::new();
     LANGUAGES_DIR.get_or_init(|| data_dir().join("languages"))
@@ -466,7 +539,7 @@ pub fn languages_dir() -> &'static PathBuf {
 
 /// Returns the path to the debug adapters directory
 ///
-/// This is where debug adapters are downloaded to for DAPs that are built-in to Wu.
+/// This is where debug adapters are downloaded to for DAPs that are built-in to WiSCode.
 pub fn debug_adapters_dir() -> &'static PathBuf {
     static DEBUG_ADAPTERS_DIR: OnceLock<PathBuf> = OnceLock::new();
     DEBUG_ADAPTERS_DIR.get_or_init(|| data_dir().join("debug_adapters"))
@@ -693,4 +766,41 @@ pub fn global_gitignore_path() -> Option<PathBuf> {
     GLOBAL_GITIGNORE_PATH
         .get_or_init(::ignore::gitignore::gitconfig_excludes_path)
         .clone()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_legacy_dir_for() {
+        assert_eq!(
+            legacy_dir_for(Path::new("/home/user/.config/wiscode")),
+            Some(PathBuf::from("/home/user/.config/wu"))
+        );
+        assert_eq!(
+            legacy_dir_for(Path::new("/Users/user/Library/Application Support/WiSCode")),
+            Some(PathBuf::from("/Users/user/Library/Application Support/Wu"))
+        );
+        assert_eq!(legacy_dir_for(Path::new("/custom/data")), None);
+    }
+
+    #[test]
+    fn test_copy_dir_recursive() {
+        let temp = tempfile::tempdir().expect("temp dir");
+        let source = temp.path().join("Wu");
+        std::fs::create_dir_all(source.join("nested")).expect("create source");
+        std::fs::write(source.join("settings.json"), "{}").expect("write settings");
+        std::fs::write(source.join("nested/db"), "data").expect("write nested");
+        let destination = temp.path().join("WiSCode");
+        copy_dir_recursive(&source, &destination).expect("copy");
+        assert_eq!(
+            std::fs::read_to_string(destination.join("settings.json")).expect("read"),
+            "{}"
+        );
+        assert_eq!(
+            std::fs::read_to_string(destination.join("nested/db")).expect("read"),
+            "data"
+        );
+    }
 }

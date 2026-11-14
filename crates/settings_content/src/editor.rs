@@ -528,6 +528,11 @@ pub struct GutterContent {
     ///
     /// Default: true
     pub runnables: Option<bool>,
+    /// Whether to show "go to implementation" markers in the gutter next to
+    /// interfaces, classes and methods that have implementations.
+    ///
+    /// Default: true
+    pub implementations: Option<bool>,
     /// Whether to show breakpoints in the gutter.
     ///
     /// Default: true

@@ -15,6 +15,7 @@ pub mod path_list {
     pub use util::path_list::{PathList, SerializedPathList};
 }
 pub mod focus_follows_mouse;
+pub mod intro;
 pub mod path_link;
 mod persistence;
 pub mod searchable;
@@ -1397,6 +1398,13 @@ pub enum Event {
     Activate,
     PanelAdded(AnyView),
     WorktreeCreationChanged,
+    /// A debug session was requested, for example from the gutter; lets other views offer
+    /// to start the same scenario again.
+    DebugSessionRequested {
+        scenario: DebugScenario,
+        task_context: SharedTaskContext,
+        worktree_id: Option<WorktreeId>,
+    },
 }
 
 /// Controls which types of items should be made visible in the project panel
@@ -9867,10 +9875,10 @@ async fn confirm_quit_warning(
             window.prompt(
                 PromptLevel::Warning,
                 &warning,
-                Some(&t!("Closing Wu now stops it.")),
+                Some(&t!("Closing WiSCode now stops it.")),
                 &[
                     PromptButton::cancel(t!("Cancel")),
-                    PromptButton::new(t!("Close Wu")),
+                    PromptButton::new(t!("Close WiSCode")),
                 ],
                 cx,
             )
@@ -11080,7 +11088,7 @@ mod tests {
             });
         });
         cx.executor().run_until_parked();
-        assert_eq!(cx.window_title().as_deref(), Some("Wu — root1, root2"));
+        assert_eq!(cx.window_title().as_deref(), Some("WiSCode — root1, root2"));
 
         let item = cx.new(|cx| {
             TestItem::new(cx).with_project_items(&[TestProjectItem::new_in_worktree(
@@ -11097,7 +11105,7 @@ mod tests {
         let expected_file_path = path!("/root1/src/one.txt");
         assert_eq!(
             cx.window_title().as_deref(),
-            Some(format!("Wu — root1, root2 — one — {expected_file_path}").as_str())
+            Some(format!("WiSCode — root1, root2 — one — {expected_file_path}").as_str())
         );
     }
 

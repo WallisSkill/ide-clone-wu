@@ -164,7 +164,7 @@ impl CodexHarness {
                     json!({
                         "clientInfo": {
                             "name": "wu",
-                            "title": "Wu",
+                            "title": "WiSCode",
                             "version": env!("CARGO_PKG_VERSION"),
                         },
                         "capabilities": { "experimentalApi": true },
@@ -936,7 +936,7 @@ async fn run_session(session: Session) {
                 json!({
                     "clientInfo": {
                         "name": "wu",
-                        "title": "Wu",
+                        "title": "WiSCode",
                         "version": env!("CARGO_PKG_VERSION"),
                     },
                     "capabilities": { "experimentalApi": true },

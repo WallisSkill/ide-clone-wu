@@ -117,14 +117,14 @@ impl AppCommand {
 
     fn description(self) -> SharedString {
         match self {
-            AppCommand::Model => t!("Wu: choose model and reasoning"),
-            AppCommand::New => t!("Wu: start a new chat"),
-            AppCommand::Resume => t!("Wu: open chat history"),
-            AppCommand::Settings => t!("Wu: open settings"),
-            AppCommand::Diff => t!("Wu: open changes"),
-            AppCommand::Files => t!("Wu: open project files"),
-            AppCommand::Terminal => t!("Wu: open a terminal"),
-            AppCommand::Stop => t!("Wu: stop the agent"),
+            AppCommand::Model => t!("WiSCode: choose model and reasoning"),
+            AppCommand::New => t!("WiSCode: start a new chat"),
+            AppCommand::Resume => t!("WiSCode: open chat history"),
+            AppCommand::Settings => t!("WiSCode: open settings"),
+            AppCommand::Diff => t!("WiSCode: open changes"),
+            AppCommand::Files => t!("WiSCode: open project files"),
+            AppCommand::Terminal => t!("WiSCode: open a terminal"),
+            AppCommand::Stop => t!("WiSCode: stop the agent"),
         }
     }
 

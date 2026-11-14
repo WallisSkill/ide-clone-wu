@@ -137,6 +137,7 @@ pub struct LanguageServer {
     #[allow(clippy::type_complexity)]
     io_tasks: Mutex<Option<(Task<Option<()>>, Task<Option<()>>)>>,
     output_done_rx: Mutex<Option<barrier::Receiver>>,
+    stdout_closed_rx: barrier::Receiver,
     server: Arc<Mutex<Option<Child>>>,
     workspace_folders: Option<Arc<Mutex<BTreeSet<Uri>>>>,
     root_uri: Uri,
@@ -602,6 +603,7 @@ impl LanguageServer {
     {
         let (outbound_tx, outbound_rx) = async_channel::unbounded::<String>();
         let (output_done_tx, output_done_rx) = barrier::channel();
+        let (stdout_closed_tx, stdout_closed_rx) = barrier::channel();
         let notification_handlers =
             Arc::new(Mutex::new(HashMap::<_, NotificationHandler>::default()));
         let response_handlers =
@@ -632,7 +634,7 @@ impl LanguageServer {
             let io_handlers = io_handlers.clone();
             let pending_respond_tasks = pending_respond_tasks.clone();
             async move |cx| {
-                Self::handle_incoming_messages(
+                let result = Self::handle_incoming_messages(
                     stdout,
                     unhandled_notification_wrapper,
                     notification_handlers,
@@ -642,7 +644,9 @@ impl LanguageServer {
                     cx,
                 )
                 .log_err()
-                .await
+                .await;
+                drop(stdout_closed_tx);
+                result
             }
         });
         let stderr_input_task = stderr
@@ -714,9 +718,19 @@ impl LanguageServer {
             executor: cx.background_executor().clone(),
             io_tasks: Mutex::new(Some((input_task, output_task))),
             output_done_rx: Mutex::new(Some(output_done_rx)),
+            stdout_closed_rx,
             server: Arc::new(Mutex::new(server)),
             workspace_folders,
             root_uri,
+        }
+    }
+
+    /// Resolves once the server's stdout has closed, which happens both on shutdown and when the
+    /// server process dies on its own.
+    pub fn stdout_closed(&self) -> impl Future<Output = ()> + use<> {
+        let mut stdout_closed = self.stdout_closed_rx.clone();
+        async move {
+            stdout_closed.recv().await;
         }
     }
 

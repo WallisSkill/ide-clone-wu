@@ -179,6 +179,11 @@ const CROSS_BUFFER_DIAGNOSTICS_PULL_DELAY: Duration = Duration::from_millis(100)
 const DOCUMENT_DIAGNOSTICS_RETRIGGER_LIMIT: usize = 3;
 const DOCUMENT_DIAGNOSTICS_RETRIGGER_DELAY: Duration = Duration::from_millis(100);
 const SERVER_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(10);
+/// A server that exits on its own (for example its process was killed) is restarted, but not
+/// more than this many times within `CRASH_RESTART_WINDOW`, so a server that keeps crashing
+/// on startup does not loop forever.
+const MAX_CRASH_RESTARTS: usize = 3;
+const CRASH_RESTART_WINDOW: Duration = Duration::from_secs(180);
 static NEXT_PROMPT_REQUEST_ID: AtomicUsize = AtomicUsize::new(0);
 
 /// Refresh messages carry a monotonic id for backwards compatibility only: older peers
@@ -350,6 +355,7 @@ pub struct LocalLspStore {
     restricted_worktrees_tasks: HashMap<WorktreeId, (Subscription, watch::Receiver<bool>)>,
     all_language_servers_stopped: bool,
     stopped_language_servers: HashSet<LanguageServerName>,
+    crash_restarts: HashMap<LanguageServerName, Vec<Instant>>,
 
     buffers_to_refresh_hash_set: HashSet<BufferId>,
     buffers_to_refresh_queue: VecDeque<BufferId>,
@@ -4820,6 +4826,7 @@ impl LspStore {
                 restricted_worktrees_tasks: HashMap::default(),
                 all_language_servers_stopped: false,
                 stopped_language_servers: HashSet::default(),
+                crash_restarts: HashMap::default(),
                 watched_manifest_filenames: ManifestProvidersStore::global(cx)
                     .manifest_file_names(),
             }),
@@ -12402,6 +12409,42 @@ impl LspStore {
         }
     }
 
+    /// Stopping a server removes it from `language_servers` before shutting it down, so a server
+    /// that is still `Running` when its stdout closes has exited on its own.
+    fn restart_crashed_language_server(
+        &mut self,
+        server_id: LanguageServerId,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(local) = self.as_local_mut() else {
+            return;
+        };
+        let Some(LanguageServerState::Running { adapter, .. }) =
+            local.language_servers.get(&server_id)
+        else {
+            return;
+        };
+        let name = adapter.name();
+        let now = Instant::now();
+        let restarts = local.crash_restarts.entry(name.clone()).or_default();
+        restarts.retain(|restarted_at| now.duration_since(*restarted_at) < CRASH_RESTART_WINDOW);
+        if restarts.len() >= MAX_CRASH_RESTARTS {
+            log::error!(
+                "language server {name} exited unexpectedly {MAX_CRASH_RESTARTS} times; not restarting it again"
+            );
+            return;
+        }
+        restarts.push(now);
+        log::warn!("language server {name} exited unexpectedly; restarting it");
+        let buffers = self.buffer_store.read(cx).buffers().collect();
+        self.restart_language_servers_for_buffers(
+            buffers,
+            HashSet::from_iter([LanguageServerSelector::Name(name)]),
+            false,
+            cx,
+        );
+    }
+
     pub fn restart_all_language_servers(&mut self, cx: &mut Context<Self>) {
         if let Some(local) = self.as_local_mut() {
             local.all_language_servers_stopped = false;
@@ -12901,6 +12944,16 @@ impl LspStore {
                 simulate_disk_based_diagnostics_completion: None,
             },
         );
+        let stdout_closed = language_server.stdout_closed();
+        cx.spawn(async move |lsp_store, cx| {
+            stdout_closed.await;
+            lsp_store
+                .update(cx, |lsp_store, cx| {
+                    lsp_store.restart_crashed_language_server(server_id, cx)
+                })
+                .ok();
+        })
+        .detach();
         local.update_binary_status(adapter.name(), BinaryStatus::None);
         if let Some(file_ops_caps) = language_server
             .capabilities()

@@ -1458,3 +1458,35 @@ async fn test_empty_workspace_is_kept_once_it_gets_a_folder(cx: &mut TestAppCont
         mw.assert_project_group_key_integrity(cx).unwrap();
     });
 }
+
+#[gpui::test]
+async fn test_intro_skips_on_keystroke_and_removes_itself(cx: &mut TestAppContext) {
+    init_test(cx);
+    let fs = FakeFs::new(cx.executor());
+    fs.insert_tree("/root_a", json!({ "file.txt": "" })).await;
+    let project = Project::test(fs, ["/root_a".as_ref()], cx).await;
+    let (multi_workspace, cx) =
+        cx.add_window_view(|window, cx| MultiWorkspace::test_new(project, window, cx));
+
+    multi_workspace.update(cx, |multi_workspace, cx| multi_workspace.show_intro(cx));
+    let intro = multi_workspace
+        .read_with(cx, |multi_workspace, _| {
+            multi_workspace.intro.as_ref().map(|(intro, _)| intro.clone())
+        })
+        .expect("intro should be shown");
+    assert!(intro.read_with(cx, |intro, _| !intro.is_skipped()));
+
+    cx.simulate_keystrokes("a");
+    assert!(
+        intro.read_with(cx, |intro, _| intro.is_skipped()),
+        "any key should skip the intro"
+    );
+
+    intro.update(cx, |intro, _| intro.end_now_for_test());
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    assert!(
+        multi_workspace.read_with(cx, |multi_workspace, _| multi_workspace.intro.is_none()),
+        "a finished intro should be removed from the window"
+    );
+}
