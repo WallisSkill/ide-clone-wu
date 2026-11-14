@@ -15,32 +15,18 @@ Wu 是一款用 Rust 编写的快速原生代码编辑器，界面简洁现代�
 ## 功能
 
 - ⚡ **原生、快速。** 不用 Electron，也没有网页视图。打开就能用，大型视图下也一直流畅。
-- 🍃 **轻量。** Wu 占用的内存比 VS Code 和 Zed 都少。查看[测试结果](https://github.com/dstrml/wu/blob/main/docs/memory-benchmark.md)。
+- 🍃 **轻量。** Wu 占用的内存比 VS Code 和 Zed 都少。查看[测试结果](https://github.com/WallisSkill/ide-clone-wu/blob/main/docs/memory-benchmark.md)。
 - 👾 **内置编程智能体。** 直接支持 Claude Code、Codex 和 OpenCode。
 - ✨ **默认就好看。** 外观简洁现代，用起来也顺手。
 - 🤫 **完全私密。** 无需账号，没有遥测。Wu 从不把你的使用数据发送到任何地方。
 
 ## 下载
 
-在 macOS 和 Linux 上运行：
+Windows 用户请下载 [WiSCode 安装程序](https://github.com/WallisSkill/ide-clone-wu/releases/latest/download/WiSCode-x86_64.exe)。
 
-```sh
-curl -fsSL https://wu.dstrml.org/install.sh | sh
-```
+所有版本都在 [Releases](https://github.com/WallisSkill/ide-clone-wu/releases) 页面。Java 支持请安装 [java-wis 扩展](https://github.com/WallisSkill/java-extention-for-wu-clone)。
 
-Windows 用户请下载[安装程序](https://github.com/dstrml/wu/releases/latest/download/Wu-x86_64.exe)。
-
-<details>
-<summary>或者手动安装</summary>
-
-- [macOS（Apple 芯片）](https://github.com/dstrml/wu/releases/latest/download/Wu-aarch64.dmg)
-- [macOS（Intel 芯片）](https://github.com/dstrml/wu/releases/latest/download/Wu-x86_64.dmg)
-- [Windows x86-64](https://github.com/dstrml/wu/releases/latest/download/Wu-x86_64.exe)
-- [Linux x86-64](https://github.com/dstrml/wu/releases/latest/download/wu-linux-x86_64.tar.gz)
-- [Linux AArch64](https://github.com/dstrml/wu/releases/latest/download/wu-linux-aarch64.tar.gz)
-
-更多内容请看 [INSTALL.md](https://github.com/dstrml/wu/blob/main/docs/INSTALL.md)。
-</details>
+更多内容请看 [INSTALL.md](https://github.com/WallisSkill/ide-clone-wu/blob/main/docs/INSTALL.md)。
 
 ---
 

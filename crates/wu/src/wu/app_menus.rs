@@ -350,7 +350,7 @@ pub fn app_menus(cx: &mut App) -> Vec<Menu> {
                 MenuItem::action(
                     t!("WiSCode Repository"),
                     super::OpenBrowser {
-                        url: "https://github.com/dstrml/wu".into(),
+                        url: "https://github.com/WallisSkill/ide-clone-wu".into(),
                     },
                 ),
             ],
