@@ -18,7 +18,7 @@ use editor::{
     ActiveDebugLine, Editor, EditorMode, MultiBuffer,
     actions::{self},
 };
-use gpui::{BackgroundExecutor, TestAppContext, VisualTestContext};
+use gpui::{BackgroundExecutor, Focusable as _, TestAppContext, VisualTestContext};
 use project::{
     FakeFs, Project,
     debugger::session::{ThreadId, ThreadStatus},
@@ -382,6 +382,77 @@ async fn test_handle_successful_run_in_terminal_reverse_request(
                 Some(&true)
             );
             assert!(running.read(cx).debug_terminal.read(cx).terminal.is_some());
+        })
+        .unwrap();
+}
+
+#[gpui::test]
+async fn test_run_without_debugging_uses_terminal_panel(
+    executor: BackgroundExecutor,
+    cx: &mut TestAppContext,
+) {
+    // needed because the debugger launches a terminal which starts a background PTY
+    cx.executor().allow_parking();
+    init_test(cx);
+
+    let fs = FakeFs::new(executor.clone());
+    fs.insert_tree(path!("/project"), json!({ "main.rs": "" })).await;
+
+    let project = Project::test(fs, [path!("/project").as_ref()], cx).await;
+    let workspace = init_test_workspace(&project, cx).await;
+    let cx = &mut VisualTestContext::from_window(*workspace, cx);
+
+    let session = start_debug_session_with(
+        &workspace,
+        cx,
+        DebugTaskDefinition {
+            adapter: "fake-adapter".into(),
+            label: "test".into(),
+            config: json!({ "request": "launch", "noDebug": true }),
+            tcp_connection: None,
+        },
+        |_| {},
+    )
+    .unwrap();
+    let client = session.update(cx, |session, _| session.adapter_client().unwrap());
+
+    let send_response = Arc::new(AtomicBool::new(false));
+    client
+        .on_response::<RunInTerminal, _>({
+            let send_response = send_response.clone();
+            move |response| {
+                send_response.store(true, Ordering::SeqCst);
+                assert!(response.success);
+            }
+        })
+        .await;
+    client
+        .fake_reverse_request::<RunInTerminal>(RunInTerminalRequestArguments {
+            kind: None,
+            title: None,
+            cwd: std::env::temp_dir().to_string_lossy().into_owned(),
+            args: vec![],
+            env: None,
+            args_can_be_interpreted_by_shell: None,
+        })
+        .await;
+    cx.run_until_parked();
+
+    assert!(send_response.load(Ordering::SeqCst));
+    workspace
+        .update(cx, |workspace, window, cx| {
+            let debug_panel = workspace.panel::<DebugPanel>(cx).unwrap();
+            assert!(
+                !debug_panel.read(cx).focus_handle(cx).contains_focused(window, cx),
+                "a run without debugging must not focus the debug panel"
+            );
+            let session = debug_panel.read(cx).active_session().unwrap();
+            let running = session.read(cx).running_state();
+            assert!(running.read(cx).debug_terminal.read(cx).terminal.is_none());
+
+            let terminal_panel = workspace.panel::<TerminalPanel>(cx).unwrap();
+            let pane = terminal_panel.read(cx).pane().unwrap().clone();
+            assert_eq!(pane.read(cx).items_len(), 1);
         })
         .unwrap();
 }

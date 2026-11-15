@@ -50,7 +50,7 @@ use task::{
     BuildTaskDefinition, DebugScenario, SharedTaskContext, Shell, ShellBuilder, SpawnInTerminal,
     TaskContext, ZedDebugConfig, substitute_variables_in_str,
 };
-use terminal_view::TerminalView;
+use terminal_view::{TerminalView, terminal_panel::TerminalPanel};
 use ui::{
     FluentBuilder, IntoElement, Render, StatefulInteractiveElement, Tab, Tooltip, VisibleOnHover,
     VisualContext, prelude::*,
@@ -1362,6 +1362,40 @@ impl RunningState {
 
         let workspace = self.workspace.clone();
         let weak_project = project.downgrade();
+
+        let without_debugging = session.binary().is_some_and(|binary| {
+            crate::debugger_panel::launched_without_debugging(&binary.request_args.configuration)
+        });
+        if without_debugging {
+            // A plain run shows the program in the terminal panel, like any other task.
+            let terminal_panel = self
+                .workspace
+                .read_with(cx, |workspace, cx| workspace.panel::<TerminalPanel>(cx))
+                .ok()
+                .flatten();
+            if let Some(terminal_panel) = terminal_panel {
+                let terminal_task = terminal_panel.update(cx, |terminal_panel, cx| {
+                    terminal_panel.add_terminal_task(
+                        kind,
+                        task::RevealStrategy::NoFocus,
+                        window,
+                        cx,
+                    )
+                });
+                let terminal_task = cx.spawn(async move |_, cx| {
+                    let terminal = terminal_task.await?.upgrade().context("terminal closed")?;
+                    terminal.read_with(cx, |terminal, _| {
+                        terminal
+                            .pid()
+                            .map(|pid| pid.as_u32())
+                            .context("Terminal was spawned but PID was not available")
+                    })
+                });
+                return cx.background_spawn(async move {
+                    anyhow::Ok(sender.send(terminal_task.await).await?)
+                });
+            }
+        }
 
         let terminal_task =
             project.update(cx, |project, cx| project.create_terminal_task(kind, cx));

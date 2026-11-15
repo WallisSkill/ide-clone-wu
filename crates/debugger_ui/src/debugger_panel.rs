@@ -233,11 +233,18 @@ impl DebugPanel {
                 );
             })
         }
+        let reveal_panel = !launched_without_debugging(&scenario.config);
         let task = cx.spawn_in(window, {
             let session = session.clone();
             async move |this, cx| {
-                let debug_session =
-                    Self::register_session(this.clone(), session.clone(), true, cx).await?;
+                let debug_session = Self::register_session(
+                    this.clone(),
+                    session.clone(),
+                    true,
+                    reveal_panel,
+                    cx,
+                )
+                .await?;
                 let definition = debug_session
                     .update_in(cx, |debug_session, window, cx| {
                         debug_session.running_state().update(cx, |running, cx| {
@@ -348,6 +355,7 @@ impl DebugPanel {
         this: WeakEntity<Self>,
         session: Entity<Session>,
         focus: bool,
+        reveal_panel: bool,
         cx: &mut AsyncWindowContext,
     ) -> Result<Entity<DebugSession>> {
         let debug_session = register_session_inner(&this, session, cx).await?;
@@ -359,9 +367,11 @@ impl DebugPanel {
 
             this.workspace.clone()
         })?;
-        workspace.update_in(cx, |workspace, window, cx| {
-            workspace.focus_panel::<Self>(window, cx);
-        })?;
+        if reveal_panel {
+            workspace.update_in(cx, |workspace, window, cx| {
+                workspace.focus_panel::<Self>(window, cx);
+            })?;
+        }
         Ok(debug_session)
     }
 
@@ -385,6 +395,7 @@ impl DebugPanel {
         let quirks = curr_session.read(cx).quirks();
         let adapter = curr_session.read(cx).adapter();
         let binary = curr_session.read(cx).binary().cloned().unwrap();
+        let reveal_panel = !launched_without_debugging(&binary.request_args.configuration);
         let task_context = curr_session.read(cx).task_context().clone();
 
         let curr_session_id = curr_session.read(cx).session_id();
@@ -405,7 +416,7 @@ impl DebugPanel {
                 });
                 (session, task)
             });
-            Self::register_session(this.clone(), session.clone(), true, cx).await?;
+            Self::register_session(this.clone(), session.clone(), true, reveal_panel, cx).await?;
 
             if let Err(error) = task.await {
                 session
@@ -453,6 +464,7 @@ impl DebugPanel {
             return;
         };
         let task_context = parent_session.read(cx).task_context().clone();
+        let reveal_panel = !launched_without_debugging(&binary.request_args.configuration);
         binary.request_args = request.clone();
         cx.spawn_in(window, async move |this, cx| {
             let (session, task) = dap_store_handle.update(cx, |dap_store, cx| {
@@ -473,7 +485,8 @@ impl DebugPanel {
             // Focus child sessions if the parent has never emitted a stopped event;
             // this improves our JavaScript experience, as it always spawns a "main" session that then spawns subsessions.
             let parent_ever_stopped = parent_session.update(cx, |this, _| this.has_ever_stopped());
-            Self::register_session(this, session, !parent_ever_stopped, cx).await?;
+            Self::register_session(this, session, !parent_ever_stopped, reveal_panel, cx)
+                .await?;
             task.await
         })
         .detach_and_log_err(cx);
@@ -1977,4 +1990,14 @@ impl workspace::DebuggerProvider for DebuggerProvider {
         let thread = session.read(cx).running_state().read(cx).thread_id()?;
         session.read(cx).session(cx).read(cx).thread_state(thread)
     }
+}
+
+/// Whether a launch configuration asks the adapter to run the program without debugging
+/// (the standard `noDebug` launch argument). Such runs keep the debug panel closed and
+/// show the program in the terminal panel.
+pub(crate) fn launched_without_debugging(config: &serde_json::Value) -> bool {
+    config
+        .get("noDebug")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
 }
